@@ -15,7 +15,7 @@ from src.dao import employee,employer,employee_employer
 import re
 from flask_bcrypt import Bcrypt 
 import hashlib
-import encodings
+
 app=Flask(__name__)
 bcrypt=Bcrypt(app)
 
@@ -25,9 +25,9 @@ def get_db_connection():
 
 def get_hashed_pswd(password):
     h=hashlib.new("sha256")
-    encoded_password=password.encode("UTF")
+    password=password.encode("UTF-8")
     h.update(password)
-    pw_hash=h.digest()
+    pw_hash=h.hexdigest()
     return pw_hash
 
 @app.route("/",methods=["GET"])
@@ -107,6 +107,7 @@ def employee_details():
     input=request.get_json(force=True)
     employee_name=input["employee_name"]
     password=input["password"]
+    hashed_password=get_hashed_pswd(password)
     res={
         "status":"success",
         "message":None,
@@ -119,7 +120,7 @@ def employee_details():
             res["status"]="failure"
             res["message"]="User Doesn't exist"
         else:
-            if (bcrypt.check_password_hash(response["employee_pw_hash"],password)):
+            if (hashed_password==response["employee_pw_hash"]):
                 res["data"]=response
             else:
                 res["status"]="fail"
@@ -193,7 +194,9 @@ def suscribe_to_employer():
         else:   
             connection=get_db_connection()
             res["data"]=employee_employer.subscribe_to_employer(connection,employee_id,employer_id)
+            res["message"]="successfully added"
     except Exception as e:
+        print(str(e))
         res["status"]="failure"
         res["message"]="unable to subscribe"
     return json.dumps(res)
@@ -300,12 +303,16 @@ def unsubscribe_employee():
     }
     try:
         if "employee_id" not in input:
+            res["status"]="failure"
             res["message"]="employee_id not given"
         elif not re.match("^\d{1,4}",str(input["employee_id"])):
+            res["status"]="failure"
             res["message"]="Invalid employee_id is given"
         elif "employer_id" not in input:
+            res["status"]="failure"
             res["message"]="employer_id not given"
         elif not re.match("^\d{1,4}",str(input["employer_id"])):
+            res["status"]="failure"
             res["message"]="Invalid employer_id is given"
         else:
             connection=get_db_connection()
@@ -353,7 +360,7 @@ def get_all_details_with_names():
     
     return json.dumps(res)
 
-@app.route("/joining/three/tables",methods=["GET"])
+@app.route("/employee/employer/data",methods=["GET"])
 def join_three_tables():
     res={
         "status":"success",
@@ -369,7 +376,39 @@ def join_three_tables():
         res["message"]="unable to get details"
 
     return json.dumps(res)
+@app.route("/update/password",methods=["POST"])
+def update_pswd():
+    input=request.get_json(force=True)
+    res={
+        "status":"success",
+        "message":None,
+        "data":None
+    }
+    try:
+        if "employee_name" not in input:
+            res["status"]="failure"
+            res["message"]="employee name not given"
+        elif "email" not in input:
+            res["status"]="failure"
+            res["message"]="email id not given"
+        elif "password" not in input:
+            res["status"]="failure"
+            res["message"]="password not given"
+        else:
+            connection=get_db_connection()
+            password=input["password"]
+            res["message"]=employee.update_employee_pswd(
+                connection=connection,
+                employee_name=input["employee_name"],
+                email=input["email"],
+                password=get_hashed_pswd(password)
+                )
+    except Exception as e:
+        print(str(e))
+        res["status"]="failure"
+        res["message"]="unable to update the password"
+    return json.dumps(res)
 
 file_config=yaml.load(open(os.path.join(root_path,'conf','config.yml')))
-engine_obj=create_engine(file_config["db_connection_string"],pool_size=30,isolation_level="READ COMMITTED",echo=True)
+engine_obj=create_engine(file_config["db_connection_string"],pool_size=30,isolation_level="READ COMMITTED")
 app.run('localhost',5001)

@@ -32,7 +32,7 @@ def delete_employee(connection,employee_id):
     return {"id":del_obj.employee_id}
     
     
-def     get_employee_details(connection,employee_name):
+def get_employee_details(connection,employee_name):
     obj=connection.query(employee.Employee.employee_id,employee.Employee.employee_name,employee.Employee.employee_email,employee.Employee.password).filter(employee.Employee.employee_name==employee_name).first()
 
     print(obj)
@@ -57,3 +57,12 @@ def get_particular_employee_details(connection,employee_id):
             "employee_email":obj.employee_email
         }
     return None
+
+def update_employee_pswd(connection,employee_name,email,password):
+    res_obj=connection.query(employee.Employee).filter(and_(employee.Employee.employee_name==employee_name,employee.Employee.employee_email==email)).first()
+
+    if res_obj!=None:
+        res_obj.password=password
+        connection.commit()
+        return "Successfully Updated"
+    return "Unable to update the password"

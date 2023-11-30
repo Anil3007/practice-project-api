@@ -1,6 +1,6 @@
 from src.model import employee_employer,employee,employer
 from sqlalchemy import and_,func
-
+from sqlalchemy import desc,asc
 
 def subscribe_to_employer(connection,employee_id,employer_id):
     insert_obj=employee_employer.EmployeeEmployer(employee_id=employee_id,employer_id=employer_id)
@@ -46,7 +46,7 @@ def get_details_of_three_joined_tables(connection):
                          employee.Employee.joined_time,
                          employer.Employer.employer_id,employer.Employer.employer_name).join(employee_employer.EmployeeEmployer,employee.Employee.employee_id==employee_employer.EmployeeEmployer.employee_id).join(
                              employer.Employer,employer.Employer.employer_id==employee_employer.EmployeeEmployer.employer_id
-                         )
+                         ).order_by(asc(employee.Employee.employee_id))
     
     data=[]
     for row in obj:
@@ -54,7 +54,6 @@ def get_details_of_three_joined_tables(connection):
             "employee_name":row.employee_name,
             "employee_id":row.employee_id,
             "employer_name":row.employer_name,
-            "employer_id":row.employer_id,
             "joined_time":str(row.joined_time)
         })
 
@@ -77,10 +76,14 @@ def unsubscribe_employee_to_employer(connection,employee_id,employer_id):
     return False
 
 def get_employer_enrollment_count(connection):
-    res_obj=connection.query(employer.Employer.employer_name,func.count("*").label("count_of_enrollments")).join(employee_employer.EmployeeEmployer,employer.Employer.employer_id==employee_employer.EmployeeEmployer.employer_id).group_by(employer.Employer.employer_id)
+    res_obj=connection.query(employer.Employer.employer_name,func.count("*").label("count_of_enrollments")).join(employee_employer.EmployeeEmployer,employer.Employer.employer_id==employee_employer.EmployeeEmployer.employer_id).group_by(employer.Employer.employer_id).all()
 
-    print(res_obj)
-    return {
-        "employer_name":res_obj.employer_name,
-        
-    }
+    print("this is the returned obj",res_obj)
+
+    data=[]
+    for obj in res_obj:
+        data.append({
+            "employer_name":obj.employer_name,
+            "enrollment_count":obj.count_of_enrollments
+        })
+    return data
