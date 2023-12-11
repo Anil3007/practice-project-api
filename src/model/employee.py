@@ -13,6 +13,3 @@ class Employee(Base):
     employee_email=Column("email",String,nullable=False)
     password=Column("password",String,nullable=False)
     joined_time=Column('joined_time',TIMESTAMP,nullable=False,server_default=func.now())
-
-
-    

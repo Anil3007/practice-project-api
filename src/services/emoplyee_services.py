@@ -11,7 +11,7 @@ from flask import Flask,request
 import json,yaml
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from src.dao import employee,employer,employee_employer
+from src.dao import employee,employer,employee_employer,employee_salary
 import re
 from flask_bcrypt import Bcrypt 
 import hashlib
@@ -149,9 +149,8 @@ def get_employee(id):
         res["message"]="unable to get the "
         res["status"]="failure"
     return json.dumps(res)
-
 #API to get all employer details
-@app.route("/employers",methods=["GET"])
+@app.route("/employer/details",methods=["GET"])
 def employer_details():
     res={
         "status":"success",
@@ -407,6 +406,22 @@ def update_pswd():
         print(str(e))
         res["status"]="failure"
         res["message"]="unable to update the password"
+    return json.dumps(res)
+
+@app.route("/gt/emp/slry",methods=["GET"])
+def getd_details():
+    res={
+        "status":"success",
+        "message":None,
+        "data":None
+    }
+    try:
+        connection=get_db_connection()
+        res["data"]=employee_salary.getSalaryDetails(connection)
+    except Exception as e:
+        print(str(e))
+        res["status"]="failure"
+        res["message"]="Unable to get details"
     return json.dumps(res)
 
 file_config=yaml.load(open(os.path.join(root_path,'conf','config.yml')))
